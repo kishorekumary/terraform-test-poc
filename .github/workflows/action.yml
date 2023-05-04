@@ -33,4 +33,4 @@ jobs:
       run: terraform plan -var-file=tf.tfvars
 
     - name: Apply Terraform changes
-      run: terraform destroy -auto-approve -var-file=tf.tfvars
+      run: terraform apply -auto-approve -var-file=tf.tfvars
