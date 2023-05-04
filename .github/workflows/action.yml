@@ -22,15 +22,12 @@ jobs:
 
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
-
-    - name: Download variable file from S3
-      uses: aws-actions/amazon-s3-fetch-object@v1
-      with:
-        aws-region: us-east-1
-        bucket-name: abc-kishore
-        object-key: "tf.tfvars"
-        local-file: tf.tfvars
-
+    - name: Download S3 Object
+      run: aws s3 cp s3://abc-kishore/tf.tfvars
+    - name: workspace change
+      run: terraform workspace new dev
+    - name: select workspace
+      run: terraform workspace select dev
     - name: Initialize Terraform
       run: terraform init -backend-config="bucket=abc-kishore" -backend-config="key=kk/terraform.tfstate" -backend-config="region=us-east-1"
 
