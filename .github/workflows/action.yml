@@ -27,7 +27,7 @@ jobs:
     - name: Initialize Terraform
       run: terraform init -backend-config="bucket=abc-kishore" -backend-config="key=kk/terraform.tfstate" -backend-config="region=us-east-1"
     - name: create workspace
-      run: terraform workspace new stage
+      run: terraform workspace select stage
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars
