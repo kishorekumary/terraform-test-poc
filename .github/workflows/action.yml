@@ -1,0 +1,41 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Download variable file from S3
+      uses: aws-actions/amazon-s3-fetch-object@v1
+      with:
+        aws-region: us-east-1
+        bucket-name: abc-kishore
+        object-key: "tf.tfvars"
+        local-file: tf.tfvars
+
+    - name: Initialize Terraform
+      run: terraform init -backend-config="bucket=abc-kishore" -backend-config="key=kk/terraform.tfstate" -backend-config="region=us-east-1"
+
+    - name: Plan Terraform changes
+      run: terraform plan -var-file=tf.tfvars
+
+    - name: Apply Terraform changes
+      run: terraform apply -auto-approve -var-file=variables.tfvars
