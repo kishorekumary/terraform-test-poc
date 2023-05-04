@@ -23,7 +23,7 @@ jobs:
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
     - name: Download S3 Object
-      run: aws s3 cp s3://abc-kishore/tf.tfvars
+      run: aws s3 cp s3://abc-kishore/tf.tfvars tf.tfvars
     - name: workspace change
       run: terraform workspace new dev
     - name: select workspace
