@@ -34,11 +34,12 @@ jobs:
     - name: CLEANUP workspace
       run: |
         terraform workspace list
-        terraform workspace delete ${WORKSPACE}
+        terraform workspace select ${WORKSPACE}
       continue-on-error: true
     - name: SELECT workspace
       run: |
-        terraform workspace new ${WORKSPACE} 
+        terraform workspace new ${WORKSPACE}
+      continue-on-error: true
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars -lock=false
