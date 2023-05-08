@@ -30,11 +30,11 @@ jobs:
     - name: Download S3 Object
       run: aws s3 cp s3://abc-kishore/${WORKSPACE}.tfvars tf.tfvars
     - name: Initialize Terraform
-      run: terraform init -backend-config="bucket=${BUCKET}" -backend-config="key=${WORKSPACE}.tfstate" -backend-config="region=${REGION}"
-    - name: CLEANUP workspace
       run: |
+        terraform init -backend-config="bucket=${BUCKET}" -backend-config="key=${WORKSPACE}.tfstate" -backend-config="region=${REGION}"
         terraform workspace list
         terraform workspace select ${WORKSPACE}
+       
       continue-on-error: true
     - name: SELECT workspace
       run: |
