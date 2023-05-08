@@ -38,7 +38,7 @@ jobs:
       continue-on-error: true
     - name: SELECT workspace
       run: |
-        terraform workspace new ${WORKSPACE}
+        terraform workspace new ${WORKSPACE} -lock=false
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars -lock=false
