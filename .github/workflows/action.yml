@@ -34,10 +34,11 @@ jobs:
     - name: SELECT workspace
       run: |
         terraform workspace list
+        terraform workspace delete ${WORKSPACE}
         terraform workspace new ${WORKSPACE}
     
     - name: Plan Terraform changes
-      run: terraform plan -var-file=tf.tfvars
+      run: terraform plan -var-file=tf.tfvars -lock=false
 
 #     - name: Apply Terraform changes
 #       run: terraform apply -auto-approve -var-file=tf.tfvars
