@@ -13,7 +13,6 @@ resource "aws_ecs_cluster" "example_cluster" {
 terraform {
   backend "s3" {
     bucket = "abc-kishore"
-    key    = "kk/terraform.tfstate"
     region = "us-east-1"
      dynamodb_table = "example-lock-table"
     #lock_timeout_seconds = 300
