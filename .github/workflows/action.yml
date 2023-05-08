@@ -4,6 +4,11 @@ on:
   workflow_dispatch:
     branches:
       - main
+env:
+  WORKSPACE: stage
+  BUCKET: abc-kishore
+  REGION: us-east-1 
+  
 
 jobs:
   deploy:
@@ -23,11 +28,11 @@ jobs:
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
     - name: Download S3 Object
-      run: aws s3 cp s3://abc-kishore/stage.tfvars tf.tfvars
+      run: aws s3 cp s3://abc-kishore/${WORKSPACE}.tfvars tf.tfvars
     - name: Initialize Terraform
-      run: terraform init -backend-config="bucket=abc-kishore" -backend-config="key=kk/terraform.tfstate" -backend-config="region=us-east-1"
-    - name: create workspace
-      run: terraform workspace select stage
+      run: terraform init -backend-config="bucket=${BUCKET}" -backend-config="key=TERRAFORM/${WORKSPACE}.tfstate" -backend-config="region=${REGION}"
+    - name: SELECT workspace
+      run: terraform workspace select ${WORKSPACE}
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars
