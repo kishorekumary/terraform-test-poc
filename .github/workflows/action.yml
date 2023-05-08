@@ -5,7 +5,7 @@ on:
     branches:
       - main
 env:
-  WORKSPACE: stage
+  WORKSPACE: test-client
   BUCKET: abc-kishore
   REGION: us-east-1 
   
