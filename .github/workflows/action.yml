@@ -34,7 +34,7 @@ jobs:
     - name: SELECT workspace
       run: |
         terraform workspace list
-        terraform workspace new ${WORKSPACE}
+        terraform workspace select ${WORKSPACE}
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars
