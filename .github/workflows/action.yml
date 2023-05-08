@@ -31,10 +31,13 @@ jobs:
       run: aws s3 cp s3://abc-kishore/${WORKSPACE}.tfvars tf.tfvars
     - name: Initialize Terraform
       run: terraform init -backend-config="bucket=${BUCKET}" -backend-config="key=${WORKSPACE}.tfstate" -backend-config="region=${REGION}"
-    - name: SELECT workspace
+    - name: CLEANUP workspace
       run: |
         terraform workspace list
         terraform workspace delete ${WORKSPACE}
+      continue-on-error: true
+    - name: SELECT workspace
+      run: |
         terraform workspace new ${WORKSPACE}
     
     - name: Plan Terraform changes
