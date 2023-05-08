@@ -14,7 +14,7 @@ terraform {
   backend "s3" {
     bucket = "abc-kishore"
     region = "us-east-1"
-     dynamodb_table = "example-lock-table"
+     
     #lock_timeout_seconds = 300
   }
 }
