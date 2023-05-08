@@ -32,7 +32,9 @@ jobs:
     - name: Initialize Terraform
       run: terraform init -backend-config="bucket=${BUCKET}" -backend-config="key=TERRAFORM/${WORKSPACE}.tfstate" -backend-config="region=${REGION}"
     - name: SELECT workspace
-      run: terraform workspace select ${WORKSPACE}
+      run: |
+        terraform workspace list
+        terraform workspace new ${WORKSPACE}
     
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars
