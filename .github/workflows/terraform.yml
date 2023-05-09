@@ -10,7 +10,7 @@ on:
 env:
   REGION: us-east-1
   BUCKET: abc-kishore
-  WORKSPACE: XYZ 
+  WORKSPACE: abc
 jobs:
   terraform-pr:
     name: Terraform-PR
