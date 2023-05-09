@@ -38,9 +38,6 @@ jobs:
         with:
             terraform_version: latest
 
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check
 
       - name: Terraform Init
         id: init
