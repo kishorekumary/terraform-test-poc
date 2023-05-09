@@ -53,6 +53,9 @@ jobs:
           terraform workspace list
           terraform workspace select ${WORKSPACE}
         continue-on-error: true   
+      - name: terraform workspace if not exists
+        run: terraform workspace new ${WORKSPACE}
+        continue-on-error: true   
         
       
 
