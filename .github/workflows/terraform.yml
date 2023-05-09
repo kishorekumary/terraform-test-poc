@@ -42,7 +42,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: terraform init -backend-config="bucket=$BUCKET" -backend-config="${WORKSPACE}.tfstate" -backend-config="region=$REGION"
+        run: terraform init -backend-config="bucket=$BUCKET" -backend-config="key=${WORKSPACE}.tfstate" -backend-config="region=$REGION"
 
       - name: Terraform Validate
         id: validate
