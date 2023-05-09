@@ -8,7 +8,7 @@ on:
     branches:
       - main
 env:
-  REGION: ap-south-1
+  REGION: us-east-1
   BUCKET: abc-kishore
   WORKSPACE: XYZ 
 jobs:
