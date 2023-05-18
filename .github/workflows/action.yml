@@ -25,7 +25,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v1
       with:
           role-to-assume: arn:aws:iam::439547845933:role/openid-role
-          aws-region: us-east-1
+          region: us-east-1
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
     - name: Download S3 Object
