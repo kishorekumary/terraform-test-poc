@@ -1,12 +1,12 @@
 
 name: Terraform-PR
 on:
-  push:
-    branches: 
-      - main
-  pull_request:
-    branches:
-      - main
+#   push:
+#     branches: 
+#       - main
+#   pull_request:
+#     branches:
+#       - main
 env:
   REGION: us-east-1
   BUCKET: abc-kishore
