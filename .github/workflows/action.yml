@@ -5,7 +5,7 @@ on:
     branches:
       - main
 env:
-  WORKSPACE: test-client
+  WORKSPACE: test
   BUCKET: abc-kishore
   REGION: us-east-1 
   
@@ -13,6 +13,10 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      id-token: write
+      contents: read
 
     steps:
     - name: Checkout code
@@ -21,10 +25,8 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-
+          role-to-assume: arn:aws:iam::439547845933:role/openid-test-role
+          aws-region: us-east-1
     - name: Install Terraform
       uses: hashicorp/setup-terraform@v1
     - name: Download S3 Object
@@ -44,5 +46,5 @@ jobs:
     - name: Plan Terraform changes
       run: terraform plan -var-file=tf.tfvars -lock=false
 
-#     - name: Apply Terraform changes
-#       run: terraform apply -auto-approve -var-file=tf.tfvars
+    - name: Apply Terraform changes
+      run: terraform apply -auto-approve -var-file=tf.tfvars
