@@ -1,0 +1,331 @@
+821369name: B2B Client Workflow
+run-name: Deploying to ${{ fromJSON('["", "bettomi"]')[github.event.inputs.bettomi == 'true'] }} ${{ fromJSON('["", "superfour"]')[github.event.inputs.superfour == 'true'] }} ${{ fromJSON('["", "atom"]')[github.event.inputs.atom == 'true'] }}-${{github.event.inputs.deploy_env}} From ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      bettomi:
+        type: boolean
+        description: "bettomi"
+        default: false
+        required: true
+
+      atom:
+        type: boolean
+        description: "atom"
+        default: false
+        required: true
+
+      superfour:
+        type: boolean
+        description: "super-four"
+        default: false
+        required: true
+
+      deploy_env:
+        type: choice
+        description: "Select Environment"
+        options:
+          - Develop
+          - Production
+        required: true
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+  GAMIO_REGION: ap-south-1
+  ATOM_REGION: me-central-1
+  PLATFORM: tenant
+jobs:
+  bettomi-tenant:
+    name: Bettomi-Tenant || Branch/Tag - ${{ github.ref_name }} || Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.bettomi, 'true')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Pipeline Info
+        run: |
+          echo "Job ID: ${{ github.run_number }}"
+          echo "CommitID: ${{ github.sha }}"
+          echo "Commit Source: ${{ github.ref_type }}"
+          echo "Pipeline User: ${{ github.actor }}"
+          echo "Branch/Tag: ${{ github.ref_name }}"
+          echo "Attampt ID: ${{ github.run_attempt }}"
+          echo "Author Name: `git show -s --format='%aN' ${{ github.sha }}`"
+          echo "Author Email: `git show -s --format='%ae' ${{ github.sha }}`"
+          echo "Commit Time: `git show -s --format='%ad' ${{ github.sha }}`"
+
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Configure Gamio AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: ECR Login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Clean Build
+        run: |
+          docker build --build-arg GITHUB_TOKEN=${{secrets.GIT_TOKEN}} -t 606880623734.dkr.ecr.ap-south-1.amazonaws.com/bettomi-tenant:${{github.event.inputs.deploy_env}}-$IMAGE_TAG .
+
+      - name: Container Push
+        run: |
+          docker push  606880623734.dkr.ecr.ap-south-1.amazonaws.com/bettomi-tenant:${{github.event.inputs.deploy_env}}-$IMAGE_TAG
+
+      - name: Logout and Cleanup
+        run: |
+          docker logout && echo Y | docker system prune -a
+
+      - name: Prepare bettomi for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${{github.event.inputs.deploy_env}}-${IMAGE_TAG}/g" bettomi-dev-defination.json
+          aws ecs register-task-definition --cli-input-json file://bettomi-dev-defination.json --region=$GAMIO_REGION
+
+      - name: Prepare bettomi for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${{github.event.inputs.deploy_env}}-${IMAGE_TAG}/g" bettomi-prod-defination.json
+          aws ecs register-task-definition --cli-input-json file://bettomi-prod-defination.json --region=$GAMIO_REGION
+
+      - name: Deploy bettomi for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition bettomi-dev-tenant --region=$GAMIO_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:])
+          aws ecs update-service --force-new-deployment --cluster bettomi-client --service bettomi-dev-tenant-service --task-definition bettomi-dev-tenant:${LATEST_REV} --desired-count 1 --region=$GAMIO_REGION
+
+      - name: Deploy bettomi for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition b2b-prod-tenant-admin --region=$GAMIO_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:])
+          aws ecs update-service --force-new-deployment --cluster b2b-tenant --service b2b-prod-tenant-admin --task-definition b2b-prod-tenant-admin:${LATEST_REV} --desired-count 0 --region=$GAMIO_REGION
+
+      - name: Notify about failure
+        if: ${{ failure() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Pipeline failed!","themeColor":"ff0000","title":"$GITHUB_REPOSITORY pipeline failed 😞💢!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Bettomi-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_B2B_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
+
+      - name: Notify about Success
+        if: ${{ success() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Deployemnt Success!","themeColor":"#00FF00","title":"$GITHUB_REPOSITORY pipeline Succeed 👍!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Bettomi-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_QA_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
+
+  superfour-tenant:
+    name: Superfour-Tenant || Branch/Tag - ${{ github.ref_name }} || Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.superfour, 'true')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Pipeline Info
+        run: |
+          echo "Job ID: ${{ github.run_number }}"
+          echo "CommitID: ${{ github.sha }}"
+          echo "Commit Source: ${{ github.ref_type }}"
+          echo "Pipeline User: ${{ github.actor }}"
+          echo "Branch/Tag: ${{ github.ref_name }}"
+          echo "Attempt ID: ${{ github.run_attempt }}"
+          echo "Author Name: `git show -s --format='%aN' ${{ github.sha }}`"
+          echo "Author Email: `git show -s --format='%ae' ${{ github.sha }}`"
+          echo "Commit Time: `git show -s --format='%ad' ${{ github.sha }}`"
+
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Configure Gamio AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Clean Build
+        run: |
+          docker build --build-arg GITHUB_TOKEN=${{secrets.GIT_TOKEN}} -t 606880623734.dkr.ecr.ap-south-1.amazonaws.com/superfour:${PLATFORM}-$IMAGE_TAG .
+
+
+      - name: ECR Login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      
+      - name: Container Push
+        run: |
+          docker push  606880623734.dkr.ecr.ap-south-1.amazonaws.com/superfour:${PLATFORM}-$IMAGE_TAG
+
+      - name: Logout and Cleanup
+        run: |
+          docker logout && echo Y | docker system prune -a
+
+      - name: Prepare superfour for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${PLATFORM}-${IMAGE_TAG}/g" superfour-dev-definition.json
+          aws ecs register-task-definition --cli-input-json file://superfour-dev-definition.json --region=$GAMIO_REGION
+
+      - name: Prepare superfour for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${PLATFORM}-${IMAGE_TAG}/g" superfour-prod-definition.json
+          aws ecs register-task-definition --cli-input-json file://superfour-prod-definition.json --region=$GAMIO_REGION
+
+      - name: Deploy superfour for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition super4-dev-tenant --region=$GAMIO_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:] | cut -b 2-)
+          aws ecs update-service --force-new-deployment --cluster super4-client --service super4-dev-tenant --task-definition super4-dev-tenant:${LATEST_REV} --desired-count 1 --region=$GAMIO_REGION
+
+      - name: Deploy superfour for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition super4-prod-tenant --region=$GAMIO_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:] |cut -b 2-)
+          aws ecs update-service --force-new-deployment --cluster super4-client --service super4-prod-tenant --task-definition super4-prod-tenant:${LATEST_REV} --desired-count 0 --region=$GAMIO_REGION
+
+      - name: Notify about failure
+        if: ${{ failure() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Pipeline failed!","themeColor":"ff0000","title":"$GITHUB_REPOSITORY pipeline failed 😞💢!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Super4-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_B2B_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
+
+      - name: Notify about Success
+        if: ${{ success() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Deployemnt Success!","themeColor":"#00FF00","title":"$GITHUB_REPOSITORY pipeline Succeed 👍!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Super4-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_QA_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
+
+
+  atom-tenant:
+    name: Atom-Tenant || Branch/Tag - ${{ github.ref_name }} || Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.atom, 'true')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Pipeline Info
+        run: |
+          echo "Job ID: ${{ github.run_number }}"
+          echo "CommitID: ${{ github.sha }}"
+          echo "Commit Source: ${{ github.ref_type }}"
+          echo "Pipeline User: ${{ github.actor }}"
+          echo "Branch/Tag: ${{ github.ref_name }}"
+          echo "Attempt ID: ${{ github.run_attempt }}"
+          echo "Author Name: `git show -s --format='%aN' ${{ github.sha }}`"
+          echo "Author Email: `git show -s --format='%ae' ${{ github.sha }}`"
+          echo "Commit Time: `git show -s --format='%ad' ${{ github.sha }}`"
+
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Configure Gamio AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: me-central-1
+
+      - name: ECR Login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Clean Build
+        run: |
+          docker build --build-arg GITHUB_TOKEN=${{secrets.GIT_TOKEN}} -t 606880623734.dkr.ecr.me-central-1.amazonaws.com/atom:${PLATFORM}-$IMAGE_TAG .
+
+      - name: Container Push
+        run: |
+          docker push  606880623734.dkr.ecr.me-central-1.amazonaws.com/atom:${PLATFORM}-$IMAGE_TAG
+
+      - name: Logout and Cleanup
+        run: |
+          docker logout && echo Y | docker system prune -a
+
+      - name: Prepare atom-client for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${PLATFORM}-${IMAGE_TAG}/g" atom-dev-definition.json
+          aws ecs register-task-definition --cli-input-json file://atom-dev-definition.json --region=$ATOM_REGION
+
+      - name: Prepare atom-client for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          ls -lhtr
+          sed -i "s/VERSION/${PLATFORM}-${IMAGE_TAG}/g" atom-prod-definition.json
+          aws ecs register-task-definition --cli-input-json file://atom-prod-definition.json --region=$ATOM_REGION
+
+      - name: Deploy atom-client for development
+        if: |
+          contains(github.event.inputs.deploy_env, 'Develop')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition atom-dev-tenant-service --region=$ATOM_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:])
+          aws ecs update-service --force-new-deployment --cluster atom-cluster --service atom-dev-tenant-service --task-definition atom-dev-tenant-service:${LATEST_REV} --desired-count 1 --region=$ATOM_REGION
+
+      - name: Deploy atom-client for production
+        if: |
+          contains(github.event.inputs.deploy_env, 'Production')
+        run: |
+          LATEST_REV=$(aws ecs describe-task-definition --task-definition atom-prod-tenant-service --region=$ATOM_REGION --query 'taskDefinition.taskDefinitionArn' | cut -d '/' -f2 | tr -cd [:digit:])
+          aws ecs update-service --force-new-deployment --cluster atom-cluster --service atom-prod-tenant-service --task-definition atom-prod-tenant-service:${LATEST_REV} --desired-count 0 --region=$ATOM_REGION
+
+      - name: Notify about failure
+        if: ${{ failure() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Pipeline failed!","themeColor":"ff0000","title":"$GITHUB_REPOSITORY pipeline failed 😞💢!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Atom-Client-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_B2B_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
+
+      - name: Notify about Success
+        if: ${{ success() }}
+        run: |
+          cat << EOF > message.json
+          {"@type":"MessageCard","@context":"https://schema.org/extensions","summary":"Deployemnt Success!","themeColor":"#00FF00","title":"$GITHUB_REPOSITORY pipeline Succeed 👍!","sections":[{"facts":[{"name":"Repository:","value":"$GITHUB_REPOSITORY"},{"name":"Branch:","value":"$GITHUB_REF_NAME"},{"name":"Environment:","value":"Atom-Client-${{github.event.inputs.deploy_env}}"},{"name":"Commit:","value":"$GITHUB_SHA"},{"name":"RunBy:","value":"$GITHUB_ACTOR"}]}],"potentialAction":[{"@type":"OpenUri","name":"View on GitHub","targets":[{"os":"default","uri":"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"}]}]}
+          EOF
+          curl -X POST ${{ secrets.MS_TEAMS_QA_WEBHOOK_URI }} --header 'Content-Type: application/json' -d @message.json
