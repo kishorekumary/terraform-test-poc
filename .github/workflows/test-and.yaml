@@ -1,0 +1,429 @@
+name: Test notification
+run-name: Deployed to - ${{ fromJSON('["", "r-poker |"]')[github.event.inputs.rpoker == 'true'] }} ${{ fromJSON('["", "R-poker-rmg |"]')[github.event.inputs.rpoker_rmg == 'true'] }} ${{ fromJSON('["", "Pkr_Dev_env |"]')[github.event.inputs.pkr_develop == 'true'] }} ${{ fromJSON('["", "Pkr_Prod_env |"]')[github.event.inputs.pkr_prod == 'true'] }} ${{ fromJSON('["", "dinerobet-poker |"]')[github.event.inputs.dinerobet_poker == 'true'] }} ${{ fromJSON('["", "dinerobet-poker-rmg |"]')[github.event.inputs.dinerobet_poker_rmg == 'true'] }} ${{ fromJSON('["", "bettomi-poker |"]')[github.event.inputs.bettomi_poker == 'true'] }} ${{ fromJSON('["", "zeroriskpoker-dev |"]')[github.event.inputs.zeroriskpoker_dev == 'true'] }} ${{ fromJSON('["", "atom-dev |"]')[github.event.inputs.atom_dev == 'true'] }}  Branch/Tag - ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      rpoker:
+        type: boolean
+        description: 'MultiBuild - R poker'
+        default: "false"
+        required: true
+
+      rpoker_rmg:
+        type: boolean
+        description: 'MultiBuild - R poker-rmg'
+        default: "false"
+        required: true 
+
+      pkr_games:
+        type: choice
+        description: "Select Pkr-games Envs"
+        options:
+          - ''
+          - pkr_dev
+          - pkr_prod
+        required: false
+        
+      dinerobet_poker:
+        type: choice
+        description: "Select Dinerobet Envs"
+        options:
+          - ''
+          - dinerobet_poker_service
+          - dinerobet_poker_rmg
+        required: false
+
+      bettomi_poker:
+        type: choice
+        description: "Select Bettomi-poker Envs"
+        options:
+          - ''
+          - bettomi_poker_service
+          - bettomi_poker_rmg
+        required: false
+
+      zeroriskpoker:
+        type: choice
+        description: "Select zeroriskpoker Envs"
+        options:
+          - ''
+          - zeroriskpoker_service
+          - zeroriskpoker_rmg
+        required: false
+
+      atom_dev:
+        type: boolean
+        description: 'MultiBuild - Atom-dev'
+        default: "false"
+        required: true
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+  RPOKER_REGION: me-south-1
+  PKR_GAMES1_REGION: eu-central-1 
+  GAMIO_REGION: ap-south-1  
+  ZERORISKPOKER_REGION: ca-central-1
+  ATOM_REGION: me-central-1
+  PLATFORM: poker
+  CACHED_IMAGE: "gamiotech/nodejs-official:poker-cached-v1"
+  
+jobs:
+
+  rpoker-build:
+    name: R-poker - Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+        contains(github.event.inputs.rpoker, 'true') || 
+        contains(github.event.inputs.rpoker_rmg, 'true')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        ls
+    
+
+    - name: Pipeline Info
+      run: |
+        echo "Pipeline Info"
+
+ 
+    - name: Rpoker Build - Cached container
+      if: |
+        contains(github.event.inputs.rpoker, 'true')
+      run: |
+        ls
+        
+    - name: R-Poker Push
+      if: |
+        contains(github.event.inputs.rpoker, 'true')    
+      run: |
+        pwd
+        
+    - name: Rpoker-rmg Build - Cached container
+      if: |
+        contains(github.event.inputs.rpoker_rmg, 'true')
+      run: |
+        ls
+        
+    - name: R-Poker-rmg Push
+      if: |
+        contains(github.event.inputs.rpoker_rmg, 'true')    
+      run: |
+        pwd
+
+    - name: Deploy Poker for R-Poker Environment
+      if: |
+        contains(github.event.inputs.rpoker, 'true')
+      run: |
+        pwd
+
+    - name: Deploy Poker for R-Poker-rmg Environment
+      if: |
+        contains(github.event.inputs.rpoker_rmg, 'true')
+      run: |
+        pwd
+
+    - name: Logout and Cleanup
+      run: |
+        ls
+        
+    - name: Container status check - R poker
+      if: |
+        contains(github.event.inputs.rpoker, 'true')
+      run: |
+        ls
+
+    - name: Container status check - R poker-rmg
+      if: |
+        contains(github.event.inputs.rpoker_rmg, 'true')
+      run: |
+        ls
+
+    - name: Notify about failure - RPoker
+      if: failure() && contains(github.event.inputs.rpoker, 'true')
+      run: |
+        echo "Rpoker failed"
+
+    - name: Notify about Success - RPoker
+      if: success() && contains(github.event.inputs.rpoker, 'true')
+      run: |
+        echo "Rpoker Success"
+
+    - name: Notify about failure - RPoker-rmg
+      if: failure() && contains(github.event.inputs.rpoker_rmg, 'true')
+      run: |
+        echo "Rpoker-rmg failed"
+
+    - name: Notify about Success - RPoker-rmg
+      if: success() && contains(github.event.inputs.rpoker_rmg, 'true')
+      run: |
+        echo "Rpoker-rmg Success"
+        
+
+  pkr_games-build:
+    name: Pkr-games - Job ID - ${{ github.run_number }} ||  Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.pkr_games, 'pkr_dev') ||
+      contains(github.event.inputs.pkr_games, 'pkr_prod')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        echo "Test  pipeline "
+    
+
+    - name: Pipeline Info
+      run: |
+        echo "Test pipeline"
+ 
+    - name: Pkr-games-dev - Cached container
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_dev')
+      run: |
+        ls
+
+    - name: Pkr-games-dev Push
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_dev')	
+      run: |
+        ls
+
+    - name: Pkr-games-prod Build - Cached container
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_prod')
+      run: |
+        ls -la
+
+    - name: Pkr-games-prod Push
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_prod')	
+      run: |
+        pwd
+
+    - name: Deploy Poker for Pkr-games-dev Environment
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_dev')
+      run: |
+        ls
+
+    - name: Deploy Poker for PKR-games Prod Environment
+      if: |
+        contains(github.event.inputs.pkr_games, 'pkr_prod')
+      run: |
+        ls
+
+  dinerobet_poker-build:
+    name: Dinerobet - Job ID - ${{ github.run_number }} ||  Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_service') ||
+      contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_rmg')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        echo "Test  pipeline "
+
+    - name: Pipeline Info
+      run: |
+        echo "Test pipeline"
+
+    - name: dinerobet_poker Build - Cached container
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_service')
+      run: |
+        ls
+
+    - name: dinerobet_poker Push
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_service')	
+      run: |
+        ls
+
+    - name: dinerobet_poker_rmg Build - Cached container
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_rmg')
+      run: |
+        ls -la
+
+    - name: dinerobet_poker_rmg Push
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_rmg')	
+      run: |
+        pwd
+
+    - name: Deploy Poker for dinerobet_poker Environment
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_service')
+      run: |
+        ls
+
+    - name: Deploy Poker for dinerobet_poker_rmg Environment
+      if: |
+        contains(github.event.inputs.dinerobet_poker, 'dinerobet_poker_rmg')
+      run: |
+        ls
+
+  bettomi_poker:
+    name: Bettomi - Job ID - ${{ github.run_number }} ||  Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.bettomi_poker, 'bettomi_poker_service') ||
+      contains(github.event.inputs.bettomi_poker, 'bettomi_poker_rmg')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        echo "Test  pipeline "
+    
+
+    - name: Pipeline Info
+      run: |
+        echo "Test pipeline"
+
+    - name: bettomi_poker Build - Cached container
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_service')
+      run: |
+        ls
+
+    - name: bettomi_poker Push
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_service')	
+      run: |
+        ls
+
+    - name: bettomi_poker_rmg Build - Cached container
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_rmg')
+      run: |
+        ls -la
+
+    - name: bettomi_poker_rmg Push
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_rmg')	
+      run: |
+        pwd
+
+
+    - name: Deploy Poker for bettomi_poker Environment
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_service')
+      run: |
+        ls
+
+    - name: Deploy Poker for bettomi_poker_rmg Environment
+      if: |
+        contains(github.event.inputs.bettomi_poker, 'bettomi_poker_rmg')
+      run: |
+        ls
+
+  zeroriskpoker:
+    name: Zerorisk - Job ID - ${{ github.run_number }} ||  Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_service') ||
+      contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_rmg')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        echo "Test  pipeline "
+    
+
+    - name: Pipeline Info
+      run: |
+        echo "Test pipeline"
+
+        
+    - name: zeroriskpoker Build - Cached container
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_service')
+      run: |
+        ls
+
+    - name: zeroriskpoker Push
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_service')
+      run: |
+        ls
+
+    - name: zeroriskpoker_rmg Build - Cached container
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_rmg')
+      run: |
+        ls -la
+
+    - name: zeroriskpoker_rmg Push
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_rmg')	
+      run: |
+        pwd
+
+
+    - name: Deploy Poker for zeroriskpoker Environment
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_service')
+      run: |
+        ls
+
+    - name: Deploy Poker for zeroriskpoker_rmg Environment
+      if: |
+        contains(github.event.inputs.zeroriskpoker, 'zeroriskpoker_rmg')
+      run: |
+        ls
+
+  atom-build:
+    name: Atom-poker - Job ID - ${{ github.run_number }} ||  Pipeline User - ${{ github.actor }} || Branch/Tag - ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: |
+        contains(github.event.inputs.atom_dev, 'true')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Last commit time and build time
+      run: |
+        echo "Test  pipeline "
+    
+
+    - name: Pipeline Info
+      run: |
+        echo "Test pipeline"
+
+    - name: Atom_dev - Cached container
+      if: |
+        contains(github.event.inputs.atom_dev, 'true')
+      run: |
+        ls
+
+    - name: atom_dev Push
+      if: |
+        contains(github.event.inputs.atom_dev, 'true')	
+      run: |
+        ls
+
+    - name: Deploy Poker for atom_dev Environment
+      if: |
+        contains(github.event.inputs.atom_dev, 'true')
+      run: |
+        ls
