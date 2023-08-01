@@ -25,6 +25,7 @@ jobs:
     - name: run-script
       run: |
         pwd
+        whoami
         ls
         cd ../../..
         pwd
