@@ -1,0 +1,51 @@
+name: Test selfhosted runner
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+name: Self-host runner test on stage indiafantasy
+run-name: test-run
+on:
+  workflow_dispatch:
+
+jobs:
+  test-self-runner:
+    name: Demo poker - Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
+    runs-on: self-hosted
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Pipeline Info
+      run: |
+        echo "Job ID: ${{ github.run_number }}"
+        echo "CommitID: ${{ github.sha }}"
+        echo "Commit Source: ${{ github.ref_type }}"
+        echo "Pipeline User: ${{ github.actor }}"
+        echo "Branch/Tag: ${{ github.ref_name }}"
+        echo "Attampt ID: ${{ github.run_attempt }}"
+        echo "Author Name: `git show -s --format='%aN' ${{ github.sha }}`"
+        echo "Author Email: `git show -s --format='%ae' ${{ github.sha }}`"
+        echo "Commit Time: `git show -s --format='%ad' ${{ github.sha }}`"
+    - name: run-script
+      run: |
+        pwd
+        ls
+        cd ../..
+        pwd
+        ls
+        bash version-save.sh
