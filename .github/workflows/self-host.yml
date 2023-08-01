@@ -6,7 +6,7 @@ on:
 
 jobs:
   test-self-runner:
-    name: Demo poker - Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
+    name: Stage - Job ID - ${{ github.run_number }} || CommitID - ${{ github.sha }} || Pipeline User - ${{ github.actor }}
     runs-on: self-hosted
     steps:
     - name: Checkout
@@ -18,7 +18,7 @@ jobs:
         echo "Commit Source: ${{ github.ref_type }}"
         echo "Pipeline User: ${{ github.actor }}"
         echo "Branch/Tag: ${{ github.ref_name }}"
-        echo "Attampt ID: ${{ github.run_attempt }}"
+        echo "Attempt ID: ${{ github.run_attempt }}"
         echo "Author Name: `git show -s --format='%aN' ${{ github.sha }}`"
         echo "Author Email: `git show -s --format='%ae' ${{ github.sha }}`"
         echo "Commit Time: `git show -s --format='%ad' ${{ github.sha }}`"
