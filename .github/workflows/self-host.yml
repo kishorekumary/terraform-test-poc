@@ -30,4 +30,4 @@ jobs:
         cd ../../..
         pwd
         ls
-        bash version-save.sh
+        bash version-save.sh ${{ github.sha }}
